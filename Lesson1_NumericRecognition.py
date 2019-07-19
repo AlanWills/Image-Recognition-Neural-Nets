@@ -6,6 +6,7 @@ from sklearn.metrics import accuracy_score
 import numpy as np
 import numpy.random as r
 import matplotlib.pyplot as plt
+import sys
 
 def convert_y_to_vect(y):
 	y_vect = np.zeros((len(y), 10))
@@ -24,12 +25,13 @@ def setup_and_init_weights(nn_structure):
 	W = {}
 	b = {}
 
-	#for l in range(1, len(nn_structure)):
-		#W[l] = r.random_sample((nn_structure[l], nn_structure[l-1]))
-		#b[l] = r.random_sample((nn_structure[l],))
+	for l in range(1, len(nn_structure)):
+		W[l] = r.random_sample((nn_structure[l], nn_structure[l-1]))
+		b[l] = r.random_sample((nn_structure[l],))
 
-	#return W, b
+	return W, b
 
+def load_weights_from_file(nn_structure):
 	weights_file = open("Weights.txt")
 	weights = {}
 
@@ -54,8 +56,6 @@ def setup_and_init_weights(nn_structure):
 		biases[l] = np.asarray([float(i) for i in fields])
 
 	return weights, biases
-
-
 
 def init_tri_values(nn_structure):
 	tri_W = {}
@@ -88,12 +88,8 @@ def calculate_out_later_delta(y, h_out, z_out):
 def calculate_hidden_delta(delta_plus_1, w_l, z_l):
 	return np.dot(np.transpose(w_l), delta_plus_1) * f_deriv(z_l)
 
-def train_nn(nn_structure, X, y, iter_num=500, alpha=0.25):
+def train_nn(nn_structure, X, y, iter_num=3000, alpha=0.25):
 	W, b = setup_and_init_weights(nn_structure)
-
-	# Can early exit if we have trained values and we want to just evaluate the NN
-	#return W, b
-
 	cnt = 0
 	m = len(y)
 	one_over_m = 1.0 / m
@@ -164,6 +160,16 @@ def write_array_of_values(array_of_values, file):
 
 	file.close()
 
+#-----------------------------------------------------------------
+nn_structure = [64, 30, 10]
+train = False
+iter_num = 3000
+
+if len(sys.argv) >= 2:
+	train = sys.argv[1] == "train"
+
+if len(sys.argv) >= 3:
+	iter_num = int(sys.argv[2])
 
 digits = load_digits()
 X_scale = StandardScaler()
@@ -175,15 +181,17 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.4)
 y_v_train = convert_y_to_vect(y_train)
 y_v_test = convert_y_to_vect(y_test)
 
-nn_structure = [64, 30, 10]
-
-W, b = train_nn(nn_structure, X_train, y_v_train)
+if train:
+	W, b = train_nn(nn_structure, X_train, y_v_train, iter_num)
+else:
+	W, b = load_weights_from_file(nn_structure)
 
 y_pred = predict_y(W, b, X_test, 3)
 print(accuracy_score(y_test, y_pred) * 100)
 
-write_array_of_array_of_values(W, "Weights.txt")
-print("Finished writing Weights.txt")
+if train:
+	write_array_of_array_of_values(W, "Weights.txt")
+	print("Finished writing Weights.txt")
 
-write_array_of_values(b, "Biases.txt")
-print("Finished writing Biases.txt")
+	write_array_of_values(b, "Biases.txt")
+	print("Finished writing Biases.txt")
